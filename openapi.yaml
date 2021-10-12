@@ -11,7 +11,7 @@ paths:
     get:
       summary: Returns a list of schedule.
       description: Optional extended description in CommonMark or HTML.
-      operationId: getPet
+      operationId: get
       parameters:
         - in: query
           name: date
@@ -42,7 +42,7 @@ paths:
           description: now that date
     post:
       summary: book class
-      operationId: addPet
+      operationId: addbook
       parameters:
         - in: query
           name: class
@@ -133,8 +133,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/book'
     delete:
-      summary: Deletes a pet
-      operationId: deletePet
+      summary: Deletes a book
+      operationId: deletebook
       parameters:
         - name: api_key
           in: query
