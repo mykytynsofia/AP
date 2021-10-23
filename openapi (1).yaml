@@ -15,9 +15,266 @@ tags:
     description: Access to Petstore orders
     externalDocs:
       url: http://docs.my-api.com/store-orders.htm
+  - name: user 
+    description: Everything for booking user
+    externalDocs:
+      url: http://docs.my-api.com/pet-operations.htm
+  - name: class
+    description: Everything for booking user
+    externalDocs:
+      url: http://docs.my-api.com/pet-operations.htm  
 paths:
+  /auth/login:
+    get:
+      tags:
+        - user
+      summary: Logs user in
+      description: provides logging into system with given credentials
+      operationId: loginUser
+      parameters:
+        - name: id
+          in: query
+          description: The username
+          required: true
+          schema:
+            type: integer
+        - name: authorization
+          in: query
+          description: the user's password 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: Authentication information is missing or invalid
+      security:
+        - basicAuth: []
+  /auth/logout:
+    get:
+      tags:
+        - user
+      summary: Logs  user out
+      operationId: logoutUser
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: Authentication information is missing or invalid
+      security:
+        - basicAuth: []      
+  /class:
+    post:
+      tags:
+      - class
+      summary: create user
+      operationId: addclass
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/class'
+        required: true
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/class'
+        '409':
+          description: already create
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/class'
+        '404':
+          description: faild
+      security:
+        - basicAuth: []
+    delete:
+      tags:
+      - class
+      summary: Deletes a booking
+      operationId: deleteclass
+      parameters:
+      - name: userid
+        in: query
+        required: true
+        description: 'id user who make booking'
+        schema:
+          type: integer
+          format: int64
+      - name: authorization
+        in: query
+        required: true
+        description: 'id user who make booking'
+        schema:
+          type: integer
+          format: int64  
+      - name: id class
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Invalid ID or authorization supplied
+        '404':
+          description: class ID not found
+        '406':
+          description: no properties
+      security:
+        - basicAuth: []
   /user:
-  
+    get:
+      tags:
+      - user
+      summary: Returns a list of user.
+      description: Optional extended description in CommonMark or HTML.
+      operationId: getuser
+      responses:
+        '200':
+          description: A JSON array of user names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        '404':
+          description: failure
+    post:
+      tags:
+      - user
+      summary: creat user
+      operationId: adduser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/book'
+        required: true
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book'
+        '409':
+          description: already create
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/book'
+        '406':
+          description: no properties
+
+  /user/{id}:
+    put:
+      tags:
+      - user
+      summary: update user
+      operationId: update
+      parameters:
+        - in: path
+          name: id 
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: Firstname
+
+          schema:
+            type: string
+
+            minimum: 1
+        - in: query
+          name: Lastname
+
+          schema:
+            type: string
+        - in: query
+          name: properties
+
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 120
+        - in: query
+          name: user id 
+
+          schema:
+            type: integer
+            format: int64
+        - name: authorization
+          in: query
+
+          schema:
+            type: integer
+            format: int64  
+       
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        '409':
+          description: already create
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '406':
+          description: no properties authorization
+      security:
+        - basicAuth: []
+    delete:
+      tags:
+      - user
+      summary: Deletes a user
+      operationId: deleteuser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'id user delete '
+        schema:
+          type: integer
+          format: int64
+      - name: authorization
+        in: query
+        required: true
+        description: 'id user who make booking'
+        schema:
+          type: integer
+          format: int64  
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Invalid id supplied
+        '404':
+          description: error authorization
+      security:
+        - basicAuth: []
   /booking:
     get:
       tags:
@@ -99,14 +356,17 @@ paths:
                   $ref: '#/components/schemas/book'
         '406':
           description: no properties
+      security:
+        - basicAuth: []
+  /booking/{id}:
     put:
       tags:
       - booking
       summary: update
-      operationId: update
+      operationId: updateuser
       parameters:
-        - in: query
-          name: ID
+        - in: path
+          name: id 
           required: true
           schema:
             type: integer
@@ -165,14 +425,16 @@ paths:
                   $ref: '#/components/schemas/book'
         '406':
           description: no properties
+      security:
+        - basicAuth: []
     delete:
       tags:
       - booking
       summary: Deletes a booking
       operationId: deletePet
       parameters:
-      - name: userid
-        in: query
+      - name: id
+        in: path
         required: true
         description: 'id user who make booking'
         schema:
@@ -199,6 +461,8 @@ paths:
           description: Invalid ID supplied
         '404':
           description: class ID not found
+      security:
+        - basicAuth: []
   /Additional_Information/class:
     get:
       tags:
@@ -221,12 +485,14 @@ paths:
                 $ref: '#/components/schemas/class'
         '400':
           description: there is no such ID
+      security:
+        - basicAuth: []
   /Additional_Information/user:
     get:
       tags:
-      - Additional Information
+        - Additional Information
       summary: Returns additional information
-      operationId: getuser
+      operationId: getinfouser
       parameters:
       - in: query
         name: ID
@@ -244,6 +510,8 @@ paths:
                 
         '400':
           description: there is no such ID
+      security:
+        - basicAuth: []
     
 components:
   schemas:
@@ -269,6 +537,8 @@ components:
         - id
         - Firstname
         - Lastname
+        - properties
+        - authorization
     book:
       type: object
       properties:
@@ -295,6 +565,32 @@ components:
         - classId
         - StartDateTime
         - ENDDateTime
+        - iduser
+      xml:
+        name: book
+    bookC:
+      type: object
+      properties:
+        classId:
+          type: integer
+          format: int64
+        StartDateTime:
+          type: string
+          format: date-time
+        ENDDateTime:
+          type: string
+          format: date-time
+        booked:
+          type: boolean
+          default: false
+        iduser:
+          type: integer
+          format: int64
+      required:
+        - id        - classId
+        - StartDateTime
+        - ENDDateTime
+        - iduser
       xml:
         name: book
     class:
@@ -318,6 +614,6 @@ components:
       type: apiKey
       in: header
       name: password
-security:
-  - apiKey: []
-    appId: []
+    basicAuth:
+      type: http
+      scheme: basic
