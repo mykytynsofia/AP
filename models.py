@@ -25,16 +25,6 @@ class Book(Base):
     iduser = Column(Integer,ForeignKey('User.id'))
     users = relationship("User")
 
-
-class BookC(Base):
-    __tablename__ = "BookC"
-    classId = Column(Integer, primary_key=True)
-    StartDateTime = Column(DATETIME)
-    ENDDateTime = Column(DATETIME)
-    booked = Column(Boolean)
-    iduser = Column(Integer,ForeignKey('User.id'))
-    users = relationship("User")
-
 class Buy(Base):
     __tablename__ = "Class"
     id = Column(Integer, primary_key=True)
