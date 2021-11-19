@@ -292,3 +292,4 @@ def delete_booking(id):
     s.commit()
     schema = BookSchema()
     return schema.dump(booking), 200
+##
