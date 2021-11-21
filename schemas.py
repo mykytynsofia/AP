@@ -10,7 +10,7 @@ class UserSchema(Schema):
     authorization = fields.Str(validate=validate.Length(max=45), required=True)
 
     @post_load
-    def make_user(self, data):
+    def make_user(self, data,**kwargs):
         return User(**data)
 
 
@@ -22,7 +22,7 @@ class ClassSchema(Schema):
     info = fields.Str(validate=validate.Length(max=45), nullable=False)
 
     @post_load
-    def make_class(self, data):
+    def make_class(self, data,**kwargs):
         return Class(**data)
 
 
@@ -35,5 +35,5 @@ class BookSchema(Schema):
     book_user = fields.Integer(required=True)
 
     @post_load
-    def make_book(self, data):
+    def make_book(self, data,**kwargs):
         return Book(**data)
