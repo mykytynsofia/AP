@@ -4,25 +4,21 @@ info:
   description: Service for reserving audience
   version: 1.7.1
 servers:
-  - url: http://api.booking.com/v1
+  - url: http://api.booking.com/v7
     description: ''
 tags:
-  - name: booking 
+  - name: booking
     description: Everything for booking class
     externalDocs:
       url: http://docs.my-api.com/pet-operations.htm
-  - name:  Additional Information
-    description: Access to Petstore orders
-    externalDocs:
-      url: http://docs.my-api.com/store-orders.htm
-  - name: user 
-    description: Everything for booking user
+  - name: user
+    description: Everything about  user
     externalDocs:
       url: http://docs.my-api.com/pet-operations.htm
   - name: class
-    description: Everything for booking user
+    description: Everythingabout classes
     externalDocs:
-      url: http://docs.my-api.com/pet-operations.htm  
+      url: http://docs.my-api.com/pet-operations.htm
 paths:
   /auth/login:
     get:
@@ -40,7 +36,7 @@ paths:
             type: integer
         - name: authorization
           in: query
-          description: the user's password 
+          description: the user's password
           required: true
           schema:
             type: string
@@ -63,12 +59,49 @@ paths:
         '401':
           description: Authentication information is missing or invalid
       security:
-        - basicAuth: []      
+        - basicAuth: []
   /class:
+
+
+
+    get:
+      tags:
+      - class
+      summary: Return a list of all classes
+      description: Optional extended description in CommonMark or HTML.
+      operationId: getbook
+      parameters:
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
+            format: date-time
+            minimum: 1
+        - in: query
+          name: class
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: "successful operation. Return list of all classes"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/class'
+        '400':
+          description: there is not cllass
+        '404':
+          description: unnow that date
     post:
       tags:
       - class
-      summary: create user
+      summary: Create class
       operationId: addclass
       requestBody:
         content:
@@ -95,66 +128,147 @@ paths:
           description: faild
       security:
         - basicAuth: []
+
+
+  /class/{classid}:
+
+
+    get:
+      tags:
+      - class
+      summary: Get class by id
+      description: Get information about class with provided ID
+      operationId: getClassById
+      parameters:
+      - name: classid
+        in: path
+        required: true
+        description: 'The class id that needs to be returned.'
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/class'
+
+        404:
+          description: A user with provided ID was not found.
+      security:
+      - basicAuth: []
+
     delete:
       tags:
       - class
-      summary: Deletes a booking
-      operationId: deleteclass
+      summary: Delete class
+      description: deleting existing rating owned by current user
+      operationId: deleteRating
       parameters:
-      - name: userid
-        in: query
+      - name: classid
+        in: path
         required: true
-        description: 'id user who make booking'
+        description: 'rating id that needs to be updated'
         schema:
           type: integer
           format: int64
-      - name: authorization
-        in: query
-        required: true
-        description: 'id user who make booking'
-        schema:
-          type: integer
-          format: int64  
-      - name: id class
-        in: query
-        required: true
-        schema:
-          type: integer
-          format: int64
-          minimum: 1
       responses:
         '200':
           description: Success
         '400':
-          description: Invalid ID or authorization supplied
+          description: Invalid id supplied
         '404':
-          description: class ID not found
+          description: error authorization
+      security:
+        - basicAuth: []
+    put:
+      tags:
+      - class
+      summary: Update class
+      operationId: updateclass
+      parameters:
+        - in: path
+          name: classid
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: address
+
+          schema:
+            type: string
+
+            minimum: 1
+        - in: query
+          name: name
+
+          schema:
+            type: string
+
+
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book'
+        '400':
+          description: there is no such ID
+
         '406':
           description: no properties
       security:
         - basicAuth: []
+
   /user:
+
+
     get:
       tags:
       - user
-      summary: Returns a list of user.
+      summary: Return a list of all users
       description: Optional extended description in CommonMark or HTML.
-      operationId: getuser
+      operationId: getusers
+      parameters:
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
+            format: date-time
+            minimum: 1
+        - in: query
+          name: class
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
       responses:
         '200':
-          description: A JSON array of user names
+          description: "successful operation. Return list of all users"
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: integer
+                  $ref: '#/components/schemas/class'
+        '400':
+          description: there is not users
         '404':
-          description: failure
+          description: unnow that date
+      security:
+        - basicAuth: []
+
+
     post:
       tags:
       - user
-      summary: creat user
+      summary: Create user
       operationId: adduser
       requestBody:
         content:
@@ -179,16 +293,47 @@ paths:
                   $ref: '#/components/schemas/book'
         '406':
           description: no properties
+      security:
+        - basicAuth: []
+
+
 
   /user/{id}:
+
+    get:
+      tags:
+      - user
+      summary: Get user by id
+      description: Get information about user with provided ID
+      operationId: getUserById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'The user id that needs to be returned.'
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        404:
+          description: A user with provided ID was not found.
+      security:
+      - basicAuth: []
     put:
       tags:
       - user
-      summary: update user
+      summary: Update user
       operationId: update
       parameters:
         - in: path
-          name: id 
+          name: id
           required: true
           schema:
             type: integer
@@ -213,19 +358,14 @@ paths:
             format: int64
             minimum: 1
             maximum: 120
-        - in: query
-          name: user id 
 
-          schema:
-            type: integer
-            format: int64
         - name: authorization
           in: query
 
           schema:
             type: integer
-            format: int64  
-       
+            format: int64
+
       responses:
         '201':
           description: OK
@@ -265,7 +405,7 @@ paths:
         description: 'id user who make booking'
         schema:
           type: integer
-          format: int64  
+          format: int64
       responses:
         '200':
           description: Success
@@ -275,13 +415,16 @@ paths:
           description: error authorization
       security:
         - basicAuth: []
+
+
+
   /booking:
     get:
       tags:
       - booking
-      summary: Returns a list of schedule.
+      summary: Returns a list of bookings.
       description: Optional extended description in CommonMark or HTML.
-      operationId: getbook
+      operationId: getbookings
       parameters:
         - in: query
           name: date
@@ -313,13 +456,13 @@ paths:
     post:
       tags:
       - booking
-      summary: book class
+      summary: Create booking
       operationId: addbook
       parameters:
       - name: userid
         in: query
         required: true
-        description: 'id user who make booking'
+        description: 'id of the user who makes a booking'
         schema:
           type: integer
           format: int64
@@ -329,7 +472,7 @@ paths:
 
         schema:
           type: integer
-          format: int64  
+          format: int64
       requestBody:
         description: 'rating object updated'
         content:
@@ -359,14 +502,41 @@ paths:
       security:
         - basicAuth: []
   /booking/{id}:
+
+    get:
+      tags:
+      - booking
+      summary: Get booking by id
+      description: Get information about booking with provided ID
+      operationId: getBookingById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'The booking id that needs to be returned.'
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book'
+
+        404:
+          description: A user with provided ID was not found.
+      security:
+      - basicAuth: []
     put:
       tags:
       - booking
-      summary: update
-      operationId: updateuser
+      summary: Update booking
+      operationId: updatebooking
       parameters:
         - in: path
-          name: id 
+          name: id
           required: true
           schema:
             type: integer
@@ -394,7 +564,7 @@ paths:
             minimum: 1
             maximum: 120
         - in: query
-          name: user id 
+          name: user id
           description: 'id user who make booking'
           required: true
           schema:
@@ -405,7 +575,7 @@ paths:
           required: true
           schema:
             type: integer
-            format: int64  
+            format: int64
       responses:
         '201':
           description: OK
@@ -430,7 +600,7 @@ paths:
     delete:
       tags:
       - booking
-      summary: Deletes a booking
+      summary: Delete  booking
       operationId: deletePet
       parameters:
       - name: id
@@ -446,7 +616,7 @@ paths:
         description: 'id user who make booking'
         schema:
           type: integer
-          format: int64  
+          format: int64
       - name: ID
         in: query
         required: true
@@ -463,56 +633,7 @@ paths:
           description: class ID not found
       security:
         - basicAuth: []
-  /Additional_Information/class:
-    get:
-      tags:
-      - Additional Information
-      summary: Returns additional information
-      operationId: getclass
-      parameters:
-      - in: query
-        name: ID
-        required: true
-        schema:
-          type: integer
-          format: int64
-      responses:
-        '201':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/class'
-        '400':
-          description: there is no such ID
-      security:
-        - basicAuth: []
-  /Additional_Information/user:
-    get:
-      tags:
-        - Additional Information
-      summary: Returns additional information
-      operationId: getinfouser
-      parameters:
-      - in: query
-        name: ID
-        required: true
-        schema:
-          type: integer
-          format: int64
-      responses:
-        '201':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-                
-        '400':
-          description: there is no such ID
-      security:
-        - basicAuth: []
-    
+
 components:
   schemas:
     User:
@@ -530,6 +651,7 @@ components:
         properties:
           type: string
           example: ALL
+
         authorization:
           type: string
           example: '1111'
@@ -537,8 +659,9 @@ components:
         - id
         - Firstname
         - Lastname
-        - properties
+         -properties
         - authorization
+
     book:
       type: object
       properties:
@@ -554,9 +677,6 @@ components:
         ENDDateTime:
           type: string
           format: date-time
-        booked:
-          type: boolean
-          default: false
         iduser:
           type: integer
           format: int64
@@ -568,31 +688,7 @@ components:
         - iduser
       xml:
         name: book
-    bookC:
-      type: object
-      properties:
-        classId:
-          type: integer
-          format: int64
-        StartDateTime:
-          type: string
-          format: date-time
-        ENDDateTime:
-          type: string
-          format: date-time
-        booked:
-          type: boolean
-          default: false
-        iduser:
-          type: integer
-          format: int64
-      required:
-        - id        - classId
-        - StartDateTime
-        - ENDDateTime
-        - iduser
-      xml:
-        name: book
+
     class:
       type: object
       properties:
@@ -603,17 +699,16 @@ components:
           type: string
         name:
           type: string
+        class_user:
+          type: integer
+          format: int64
+      required:
+        - id
+        - class_user
       xml:
         name: class
   securitySchemes:
-    appId:
-      type: apiKey
-      in: header
-      name: login
-    apiKey:
-      type: apiKey
-      in: header
-      name: password
+
     basicAuth:
       type: http
       scheme: basic
