@@ -3,17 +3,69 @@ from flask import jsonify, request, Blueprint, Response
 from flask_bcrypt import Bcrypt
 from demo import *
 from schemas import *
-
+from flask_httpauth import HTTPBasicAuth
 session = sessionmaker(bind=engine)
 s = session()
 query = Blueprint("query", __name__)
 
 b = Bcrypt()
-
+auth = HTTPBasicAuth()
 
 # User
+User_array = [1 , 2, 3 , 4 , 5]
+@auth.verify_password
+def verify_password(username, password):
+    id = int(username);
+    if not id in User_array:
+        return ({"message": "you are not login"}, 401)
+    user = s.query(User).filter(User.id == id).first()
+    if b.check_password_hash(user.authorization, password):
+        return (id, 200)
+    else:
+        return ({"message": "wrong password or id"}, 401)
+@query.route('/login', methods=['GET'])
+def login():
+    info = request.authorization
+    if not info or not info.username or not info.password:
+        return {"message": "mised information"} , 401
+    id = int(info.username)
+    password = info.password
+    user = s.query(User).filter(User.id == id).first()
+    if not user:
+        return {"message": "User could not be found."}, 404
+    if id in User_array:
+        return {"message": "already login"}, 401
+
+    if b.check_password_hash(user.authorization, password):
+        User_array.append(id)
+        print(User_array)
+        return {"message": "success login"}, 200
+    else:
+        print(User_array)
+        return {"message": "wrong password or id"}, 401
+
+@query.route('/logout', methods=['GET'])
+def logout():
+    info = request.authorization
+    if not info or not info.username or not info.password:
+        return {"message": "mised information"} , 401
+    id = int(info.username)
+    password = info.password
+    if not id in User_array:
+        return ({"message": "you are not login"}, 401)
+    user = s.query(User).filter(User.id == id).first()
+    if not b.check_password_hash(user.authorization, password):
+        return ({"message": "wrong password or id"}, 401)
+    User_array.pop(User_array.index(id))
+    print(User_array)
+    return ({"message": "you logout"}, 401)
+
+
+
+
 @query.route('/user', methods=['POST'])
 def user_create():
+    print('create')
     data = request.json
     if not data:
         return {"message": "Empty request body."}, 400
@@ -29,22 +81,42 @@ def user_create():
     hashed_password = b.generate_password_hash(data['authorization'])
     new_user = User(id=data['id'], Firstname=data['Firstname'], Lastname=data['Lastname'],
                     properties=data['properties'], authorization=hashed_password)
+    print('create')
     s.add(new_user)
     s.commit()
     return {"message": "User was successfully created."}, 200
 
 
 @query.route('/user/<int:id>', methods=['GET'])
+@auth.login_required
 def user_get(id):
+    res = auth.current_user()
+    print(res)
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if res[0] != id and check_admin.properties != "Admin":
+        return {"message": "You can see only your information"}, 406
     user = s.query(User).filter(User.id == id).first()
     if not user:
         return {"message": "User could not be found."}, 404
+    print(user.id != res[0],user.properties == "Admin")
+    if user.id != res[0] and user.properties == "Admin":
+        return {"message": "You can not see anther Admin"}, 406
     schema = UserSchema()
     return schema.dump(user), 200
 
 
 @query.route('/user', methods=['GET'])
+@auth.login_required
 def user_get_all():
+    res = auth.current_user()
+    print(res)
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if check_admin.properties != "Admin":
+        return {"message": "Only Admin can do it"}, 406
     users = s.query(User).all()
     if not users:
         return {"message": "Users could not be found."}, 404
@@ -53,6 +125,7 @@ def user_get_all():
 
 
 @query.route('/user/<int:id>', methods=['PUT'])
+@auth.login_required
 def user_update(id):
     data = request.json
     schema = UserSchema()
@@ -60,9 +133,18 @@ def user_update(id):
         return {"message": "You can not change id"}, 400
     if not data:
         return {"message": "Empty request body"}, 400
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if res[0] != id and check_admin.properties != "Admin":
+        return {"message": "You can updeta only your information"}, 406
     check_id = s.query(User).filter(User.id == id).first()
     if not check_id:
         return {"message": "User with provided id does not exists"}, 400
+    if check_id.id != res[0] and check_id.properties == "Admin":
+        return {"message": "You can not updeta Admin"} , 406
     try:
         schema.load(data)
     except ValidationError as err:
@@ -76,22 +158,42 @@ def user_update(id):
 
 
 @query.route('/user/<int:id>', methods=['DELETE'])
+@auth.login_required
 def user_delete(id):
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if res[0] != id and check_admin.properties != "Admin":
+        return {"message": "You can delete only your User"}, 406
     user = s.query(User).filter_by(id=id).first()
     if not user:
         return {"message": "User could not be found."}, 404
+    if user.id != res[0] and user.properties == "Admin":
+        return {"message": "You can not delete Admin"} ,406
     # s.query(Book).filter(Book.book_user == User.id).delete(synchronize_session="fetch")
     s.delete(user)
     s.commit()
+    User_array.pop(User_array.index(id))
     return {"message": "User was successfully  deleted."}, 200
 
 
 # Class
 @query.route('/class', methods=['POST'])
+@auth.login_required
 def add_class():
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if check_admin.properties != "Admin":
+        return {"message": "Only Admin can do it"}, 406
     new_class = request.json
     if not new_class:
         return {"message": "Empty request body."}, 400
+    new_class['class_user'] = res[0];
     try:
         res = ClassSchema().load(new_class)
     except ValidationError as err:
@@ -119,7 +221,15 @@ def get_classes():
 
 
 @query.route('/class/<int:class_id>', methods=['PUT'])
+@auth.login_required
 def update_class(class_id):
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if check_admin.properties != "Admin":
+        return {"message": "Only Admin can do it"}, 406
     class_update = s.query(Class).filter(Class.id == class_id).first()
     if class_update is None:
         return {"message": "Class with provided id could not be found."}, 404
@@ -133,11 +243,13 @@ def update_class(class_id):
         data = schema.load(params)
     except ValidationError as err:
         return err.messages, 422
+    if res[0] != params['class_user']:
+        return {"message": "You can updeta only your class"}, 406
     user = s.query(User).filter(User.id == request.json.get('class_user')).first()
-    if user is None:
+    '''if user is None:
         return {"message": "User could not be found."}, 404
     if user.properties != 'Admin':
-        return {"message": "This user is not admin."}, 406
+        return {"message": "This user is not admin."}, 406'''
     for key, value in params.items():
         setattr(class_update, key, value)
     s.commit()
@@ -154,11 +266,21 @@ def get_class(id):
 
 
 @query.route('/class/<int:id>', methods=['DELETE'])
+@auth.login_required
 def delete_class(id):
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    if check_admin.properties != "Admin":
+        return {"message": "Only Admin can do it"}, 406
     class_list = s.query(Class).filter_by(id=id).first()
     if not class_list:
         return {"message": "Class could not be found."}, 404
     # s.query(Book).filter(Book.classId == Class.id).delete(synchronize_session="fetch")
+    if res[0] != class_list.class_user:
+        return {"message": "You can delete only your class"}, 406
     s.delete(class_list)
     s.commit()
     return {"message": "Class and all bookings were deleted."}, 200
@@ -166,8 +288,22 @@ def delete_class(id):
 
 # Booking
 @query.route('/booking', methods=['POST'])
+@auth.login_required
 def create_booking():
+    res = auth.current_user()
+
+    if res[1] != 200:
+        return res
+
     data = request.json
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    check_user = s.query(User).filter(User.id == data['book_user']).first()
+    if not check_user:
+        return {"message": 'User with provided id was not found.'}, 404
+    if (check_admin.properties == "Admin" and check_user.properties == "Admin" and check_user.id != res[0]) or \
+            (check_user.id != res[0] and check_admin.properties != "Admin" ):
+        return {"message": "wrong book_user"}, 401
+
     try:
         BookSchema().load(data)
     except ValidationError as err:
@@ -220,24 +356,68 @@ def get_bookings():
 
 
 @query.route('/booking/<int:id>', methods=['GET'])
+@auth.login_required
 def get_booking(id):
+
     booking_get = s.query(Book).filter(Book.id == id).first()
     if not booking_get:
         return {"message": "Booking could not be found."}, 404
+    '''res = auth.current_user()
+    if res[1] != 200:
+        return res
+
+
+
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    check_user = s.query(User).filter(User.id == booking_get.book_user).first()
+    if not check_user:
+        return {"message": 'User with provided id was not found.'}, 404
+    if check_admin.properties == "Admin" and check_user.properties == "Admin" and check_user.id != res[0]:
+        return {"message": "now properties "}, 406
+    if check_user.id != res[0] and check_admin.properties != "Admin":
+        return {"message": "now properties "}, 406'''
+
     schema = BookSchema()
     return schema.dump(booking_get), 200
 
 
 @query.route('/booking/<int:id>', methods=['PUT'])
+@auth.login_required
 def update_booking(id):
+    res = auth.current_user()
     data = request.json
+    if res[1] != 200:
+        return res
+
+    all_bookings = s.query(Book).filter_by(id=id).first()
+    if not all_bookings:
+        return {"message ": "A booking with provided ID was not found"}, 404
+
+
+    if not data:
+        return {"message": ":((("},404
+
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    check_user = s.query(User).filter(User.id == all_bookings.book_user).first()
+    if not check_user:
+        return {"message": 'User with provided id was not found.'}, 404
+    if check_admin.properties == "Admin" and check_user.properties == "Admin" and check_user.id != res[0]:
+        return {"message": "now properties "}, 406
+    if check_user.id != res[0] and check_admin.properties != "Admin":
+        return {"message": "now properties "}, 406
+    check_user = s.query(User).filter(User.id == data['book_user']).first()
+    if not check_user:
+        return {"message": 'User with provided id was not found.'}, 404
+    if check_admin.properties == "Admin" and check_user.properties == "Admin" and check_user.id != res[0]:
+        return {"message": "wrong book_user"}, 401
+    if check_user.id != res[0] and check_admin.properties != "Admin":
+        return {"message": "wrong book_user"}, 401
+
     try:
         BookSchema().load(data)
     except ValidationError as err:
         return jsonify(err.messages), 400
-    all_bookings = s.query(Book).filter_by(id=id).first()
-    if not all_bookings:
-        return {"message ": "A booking with provided ID was not found"}, 404
+
 
     if 'StartDateTime' in data.keys():
         d1 = datetime.strptime(data['StartDateTime'], '%Y-%m-%d %H:%M:%S')
@@ -284,12 +464,28 @@ def update_booking(id):
 
 
 @query.route('/booking/<int:id>', methods=['DELETE'])
+@auth.login_required
 def delete_booking(id):
+    res = auth.current_user()
+    if res[1] != 200:
+        return res
+
     booking = s.query(Book).filter_by(id=id).first()
     if not booking:
         return Response(status=404, response='A booking with provided ID was not found.')
+
+    check_admin = s.query(User).filter(User.id == res[0]).first()
+    check_user = s.query(User).filter(User.id == booking.book_user).first()
+    if check_admin.properties == "Admin" and check_user.properties == "Admin" and check_user.id != res[0]:
+        return {"message": "now properties "}, 406
+    if check_user.id != res[0] and check_admin.properties != "Admin":
+        return {"message": "now properties "}, 406
+
+
+
+
+
     s.delete(booking)
     s.commit()
     schema = BookSchema()
     return schema.dump(booking), 200
-##
